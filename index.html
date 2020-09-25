@@ -6,20 +6,56 @@
   <link rel="manifest" href="manifest.json">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <link rel="apple-touch-icon" sizes="144x144" href="logo.png">
   <title>Merge Approved Pull Requests</title>
 </head>
 <body>
   <div id="demo"></div>
   <script>
-    var auth = localStorage.getItem('auth');
-    if (!auth) {
-      auth = prompt("Please enter auth data", "username:secret");
-      if (auth != null) {
-        localStorage.setItem('auth', auth);
-      }
+    var auth = localStorage.getItem('auth')
+    while (!auth || auth.split(':').length != 2) {
+      auth = prompt("Please enter auth data", "username:secret")
     }
-    document.getElementById("demo").innerHTML = "Here you go:" + auth
+    localStorage.setItem('auth', auth)
+    var [username, password] = auth.split(':')
+    var bitbucketUrl = 'https://api.bitbucket.org/2.0/repositories/tempo-io/cloudtimesheet'
+    var bitbucketAuth = "Basic " + btoa(username + ":" + password)
+    jQuery.get({
+      url: bitbucketUrl + '/pullrequests',
+      headers: {
+        "Authorization": bitbucketAuth
+      }
+    }).then(function (pullrequests) {
+      pullrequests.values.forEach(function (pullrequest) {
+        jQuery.get({
+          url: bitbucketUrl + '/pullrequests/' + pullrequest.id + '/activity',
+          headers: {
+            "Authorization": bitbucketAuth
+          }
+        }).then(function (activity) {
+          if (activity.values.length > 0 && activity.values[0].approval) {
+            jQuery.post({
+              url: bitbucketUrl + '/pullrequests/' + pullrequest.id + '/merge',
+              headers: {
+                "Authorization": bitbucketAuth
+              },
+              data: {
+                message: pullrequest.title,
+                close_source_branch: true,
+                merge_strategy: 'squash'
+              }
+            }).then(function () {
+              document.getElementById("demo").innerHTML += 'Merged pullrequest#' + pullrequest.id + ' ' + pullrequest.title + ', approved ' + activity.values[0].approval.date + '<br/>'
+            })
+          } else {
+            document.getElementById("demo").innerHTML += 'Not merging pullrequest#' + pullrequest.id + ' ' + pullrequest.title + ' => ' + ((activity.values.length && Object.keys(activity.values[0]).join(',')) || '') + '<br/>'
+          }
+        })
+      })
+    }).catch(function (err) {
+      document.getElementById("demo").innerHTML = 'Error pullrequests: ' + err.status + ' ' + err.responseText
+    })
   </script>
 </body>
 </html>
