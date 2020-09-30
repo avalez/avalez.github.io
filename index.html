@@ -15,7 +15,7 @@
   <script>
     var auth = localStorage.getItem('auth')
     while (!auth || auth.split(':').length != 2) {
-      auth = prompt("Please enter auth data", "username:secret")
+      auth = prompt("Please enter auth data", auth || "username:secret")
     }
     localStorage.setItem('auth', auth)
     var [username, password] = auth.split(':')
@@ -35,6 +35,7 @@
           }
         }).then(function (activity) {
           if (activity.values.length > 0 && activity.values[0].approval) {
+            document.getElementById("demo").innerHTML += 'Merging pullrequest#' + pullrequest.id + ' ' + pullrequest.title + ', approved ' + activity.values[0].approval.date + '<br/>'
             jQuery.post({
               url: bitbucketUrl + '/pullrequests/' + pullrequest.id + '/merge',
               headers: {
@@ -46,7 +47,7 @@
                 merge_strategy: 'squash'
               }
             }).then(function () {
-              document.getElementById("demo").innerHTML += 'Merged pullrequest#' + pullrequest.id + ' ' + pullrequest.title + ', approved ' + activity.values[0].approval.date + '<br/>'
+              document.getElementById("demo").innerHTML += 'Merged pullrequest#' + pullrequest.id + '<br/>'
             })
           } else {
             document.getElementById("demo").innerHTML += 'Not merging pullrequest#' + pullrequest.id + ' ' + pullrequest.title + ' => ' + ((activity.values.length && Object.keys(activity.values[0]).join(',')) || '') + '<br/>'
