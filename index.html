@@ -13,11 +13,11 @@
 <body>
   <div id="demo"></div>
   <script>
-    var auth = localStorage.getItem('auth')
+    var auth = window.top.localStorage.getItem('auth')
     while (!auth || auth.split(':').length != 2) {
       auth = prompt("Please enter auth data", auth || "username:secret")
     }
-    localStorage.setItem('auth', auth)
+    window.top.localStorage.setItem('auth', auth)
     var [username, password] = auth.split(':')
     var bitbucketUrl = 'https://api.bitbucket.org/2.0/repositories/tempo-io/cloudtimesheet'
     var bitbucketAuth = "Basic " + btoa(username + ":" + password)
